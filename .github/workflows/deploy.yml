@@ -14,19 +14,18 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - name: Install dependencies
         run: npm install
@@ -37,8 +36,6 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
   deploy:
     needs: build
@@ -49,5 +46,3 @@ jobs:
     steps:
       - uses: actions/deploy-pages@v4
         id: deployment
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
