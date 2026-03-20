@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { Logo } from '../ui/Logo'
 
 export function Footer() {
   return (
@@ -6,9 +7,8 @@ export function Footer() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
           <div className="md:col-span-2">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-sm">V</div>
-              <span className="text-lg font-black gradient-text">Voxify</span>
+            <div className="mb-3">
+              <Logo size="sm" />
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs">
               Turn any text into natural-sounding voice instantly. Fast, smart, and beautifully simple.

@@ -120,3 +120,12 @@
 
 /* ── Selection ── */
 ::selection { background: rgba(99,102,241,.25); color: inherit }
+
+/* ── Logo letter wave ── */
+@keyframes letter-wave {
+  0%, 100% { transform: translateY(0) }
+  50%       { transform: translateY(-5px) }
+}
+.logo-letter:hover {
+  animation: letter-wave 0.4s ease-in-out;
+}

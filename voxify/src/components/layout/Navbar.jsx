@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { DarkModeToggle } from '../ui/DarkModeToggle'
+import { Logo } from '../ui/Logo'
 
 const NAV_LINKS = [
   { label: 'Home', to: '/' },
@@ -32,15 +33,7 @@ export function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="relative w-9 h-9">
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 animate-pulse-ring" />
-              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-indigo-500/30">
-                V
-              </div>
-            </div>
-            <span className="text-xl font-black gradient-text-animated tracking-tight">Voxify</span>
-          </Link>
+          <Logo />
 
           {/* Desktop links */}
           <div className="hidden md:flex items-center gap-1">

@@ -9,8 +9,12 @@ export default function AboutPage() {
 
           {/* Hero */}
           <div className="text-center mb-16 animate-fade-up">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-4xl mx-auto mb-6 shadow-2xl shadow-indigo-500/30 animate-float">
-              🔊
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-indigo-500/30 animate-float">
+              <div className="flex items-center gap-0.5">
+                {[4,7,10,7,4].map((h,i) => (
+                  <span key={i} className="w-1 rounded-full bg-white" style={{height:`${h}px`}} />
+                ))}
+              </div>
             </div>
             <h1 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-4">
               About <span className="gradient-text">Voxify</span>
