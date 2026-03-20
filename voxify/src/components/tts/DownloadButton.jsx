@@ -1,43 +1,35 @@
-import { useEffect, useRef } from 'react'
 import { useDownload } from '../../hooks/useDownload'
-import { Button } from '../ui/Button'
 
-export function DownloadButton({ onRequestPlay, isSpeaking, text }) {
-  const { isRecording, startRecording, stopAndDownload } = useDownload()
-  const autoStopTimer = useRef(null)
-
-  // Auto-stop when speech finishes while recording
-  useEffect(() => {
-    if (isRecording && !isSpeaking) {
-      autoStopTimer.current = setTimeout(() => {
-        stopAndDownload('voxify-speech.webm')
-      }, 600)
-    }
-    return () => clearTimeout(autoStopTimer.current)
-  }, [isRecording, isSpeaking, stopAndDownload])
+export function DownloadButton({ text, voice, rate, pitch }) {
+  const { isRecording, progress, downloadSpeech, cancel } = useDownload()
 
   const handleClick = async () => {
-    if (isRecording) {
-      stopAndDownload('voxify-speech.webm')
-      return
-    }
-    const started = await startRecording()
-    if (!started) {
-      alert('Could not capture audio.\n\nTip: When the screen share dialog appears, make sure to check "Share tab audio" and select this tab.')
-      return
-    }
-    onRequestPlay()
+    if (isRecording) { cancel(); return }
+    const ok = await downloadSpeech({ text, voice, rate, pitch })
+    if (ok === false) alert('Download failed. Make sure you are using Chrome or Edge.')
   }
 
   return (
-    <Button
-      variant={isRecording ? 'danger' : 'secondary'}
+    <button
       onClick={handleClick}
-      disabled={!text.trim()}
-      className="flex items-center gap-2"
-      title="Record speech and download as audio"
+      disabled={!text.trim() && !isRecording}
+      className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed
+        ${isRecording
+          ? 'bg-red-500 hover:bg-red-400 text-white shadow-md shadow-red-200 dark:shadow-red-900/30'
+          : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400'
+        }`}
+      title={isRecording ? 'Cancel recording' : 'Download as audio file'}
     >
-      {isRecording ? '⏹ Stop & Save' : '⬇ Download Audio'}
-    </Button>
+      {/* Progress bar */}
+      {isRecording && (
+        <div
+          className="absolute inset-0 bg-red-400/30 transition-all duration-300"
+          style={{ width: `${progress}%` }}
+        />
+      )}
+      <span className="relative">
+        {isRecording ? `⏹ ${progress < 90 ? `Recording ${progress}%` : 'Saving...'}` : '⬇ Download Audio'}
+      </span>
+    </button>
   )
 }

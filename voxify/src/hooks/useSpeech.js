@@ -17,13 +17,14 @@ export function useSpeech() {
     return () => { window.speechSynthesis.onvoiceschanged = null }
   }, [])
 
-  const speak = useCallback(({ text, voice, rate = 1, pitch = 1, onBoundary }) => {
+  const speak = useCallback(({ text, voice, rate = 1, pitch = 1, volume = 1, onBoundary }) => {
     window.speechSynthesis.cancel()
     if (!text.trim()) return
 
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.rate = rate
     utterance.pitch = pitch
+    utterance.volume = volume
     if (voice) utterance.voice = voice
 
     utterance.onstart = () => { setIsSpeaking(true); setIsPaused(false) }
