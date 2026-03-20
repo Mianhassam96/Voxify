@@ -1,16 +1,17 @@
-import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense, useRef } from 'react'
 import { useSpeech } from '../hooks/useSpeech'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { TextArea } from '../components/tts/TextArea'
-import { Player } from '../components/tts/Player'
+import { SmartPlay } from '../components/tts/SmartPlay'
 import { Presets } from '../components/tts/Presets'
 import { History } from '../components/tts/History'
 import { DownloadButton } from '../components/tts/DownloadButton'
-import { SpeakingIndicator } from '../components/tts/SpeakingIndicator'
-import { DarkModeToggle } from '../components/ui/DarkModeToggle'
+import { Navbar } from '../components/layout/Navbar'
+import { Hero } from '../components/layout/Hero'
+import { Features } from '../components/layout/Features'
+import { Footer } from '../components/layout/Footer'
 import { detectLang, findBestVoice, cleanText } from '../utils/language'
 
-// Lazy load advanced controls — only needed when user opens it
 const AdvancedControls = lazy(() =>
   import('../components/tts/AdvancedControls').then(m => ({ default: m.AdvancedControls }))
 )
@@ -27,7 +28,7 @@ export default function Home() {
   const [history, setHistory] = useLocalStorage('voxify_history', [])
   const [highlightIndex, setHighlightIndex] = useState(-1)
 
-  // Only recompute words when text changes
+  const appRef = useRef(null)
   const words = useMemo(() => text.split(/\s+/).filter(Boolean), [text])
 
   const smartPlay = useCallback(() => {
@@ -39,7 +40,6 @@ export default function Home() {
     setHistory(prev => [cleaned, ...prev.filter(h => h !== cleaned)].slice(0, 8))
   }, [text, voices, rate, pitch, selectedVoice, speak, setHistory])
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e) => {
       if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); smartPlay() }
@@ -51,113 +51,111 @@ export default function Home() {
 
   useEffect(() => { if (!isSpeaking) setHighlightIndex(-1) }, [isSpeaking])
 
-  // Stable callbacks — won't cause child re-renders on unrelated state changes
   const handlePreset = useCallback(({ label, rate: r, pitch: p }) => {
     setRate(r); setPitch(p); setActivePreset(label)
   }, [setRate, setPitch])
 
   const handleTextChange = useCallback((t) => {
-    setText(t)
-    if (isSpeaking) stop()
+    setText(t); if (isSpeaking) stop()
   }, [isSpeaking, stop])
 
-  const handleHistorySelect = useCallback((item) => {
-    setText(item)
-    stop()
-  }, [stop])
-
+  const handleHistorySelect = useCallback((item) => { setText(item); stop() }, [stop])
   const handleHistoryClear = useCallback(() => setHistory([]), [setHistory])
-
   const toggleAdvanced = useCallback(() => setIsAdvanced(v => !v), [])
 
-  const hasText = text.trim().length > 0
+  const scrollToApp = () => appRef.current?.scrollIntoView({ behavior: 'smooth' })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50 dark:from-gray-950 dark:via-gray-900 dark:to-slate-950 transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-gray-950 dark:via-gray-900 dark:to-slate-950 transition-colors duration-300">
+      <Navbar onTryNow={scrollToApp} />
 
-      {/* Header */}
-      <header className="sticky top-0 z-10 backdrop-blur-md bg-white/70 dark:bg-gray-900/70 border-b border-gray-100 dark:border-gray-800">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🔊</span>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-none">Voxify</h1>
-              <p className="text-xs text-gray-400 dark:text-gray-500">Text to Speech</p>
+      {/* Hero */}
+      <Hero onTryNow={scrollToApp} />
+
+      {/* App Section */}
+      <section id="app" ref={appRef} className="py-16 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">
+              Start Speaking
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">Paste your text and hit Smart Play</p>
+          </div>
+
+          {/* Main glass card */}
+          <div className="gradient-border rounded-3xl shadow-2xl shadow-indigo-100 dark:shadow-indigo-900/20 overflow-hidden">
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl p-6 sm:p-8 space-y-5">
+
+              {/* TextArea */}
+              <TextArea
+                text={text}
+                setText={handleTextChange}
+                highlightIndex={highlightIndex}
+                words={words}
+              />
+
+              {/* Presets */}
+              <Presets onSelect={handlePreset} active={activePreset} />
+
+              {/* Smart Play */}
+              <SmartPlay
+                isSpeaking={isSpeaking}
+                isPaused={isPaused}
+                onPlay={smartPlay}
+                onPause={pause}
+                onResume={resume}
+                onStop={stop}
+                disabled={!text.trim()}
+              />
+
+              {/* Bottom row */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <DownloadButton onRequestPlay={smartPlay} isSpeaking={isSpeaking} text={text} />
+                <button
+                  onClick={toggleAdvanced}
+                  className="ml-auto text-xs text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors flex items-center gap-1 px-3 py-1.5 rounded-xl hover:bg-indigo-50 dark:hover:bg-gray-800 border border-transparent hover:border-indigo-100 dark:hover:border-gray-700"
+                >
+                  {isAdvanced ? '▲ Less' : '⚙ Advanced'}
+                </button>
+              </div>
+
+              {/* Advanced controls */}
+              {isAdvanced && (
+                <Suspense fallback={<div className="h-36 rounded-2xl bg-gray-50 dark:bg-gray-800 animate-pulse" />}>
+                  <AdvancedControls
+                    voices={voices}
+                    selectedVoice={selectedVoice}
+                    setSelectedVoice={setSelectedVoice}
+                    rate={rate}
+                    setRate={setRate}
+                    pitch={pitch}
+                    setPitch={setPitch}
+                  />
+                </Suspense>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <SpeakingIndicator isSpeaking={isSpeaking} isPaused={isPaused} />
-            <DarkModeToggle />
-          </div>
-        </div>
-      </header>
 
-      {/* Main */}
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-4 pb-24">
-
-        {/* Main card */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
-          <div className="p-5 space-y-4">
-            <TextArea
-              text={text}
-              setText={handleTextChange}
-              highlightIndex={highlightIndex}
-              words={words}
+          {/* History card */}
+          <div className="mt-4 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm p-5">
+            <History
+              history={history}
+              onSelect={handleHistorySelect}
+              onClear={handleHistoryClear}
             />
-            <Presets onSelect={handlePreset} active={activePreset} />
           </div>
 
-          {/* Player bar */}
-          <div className="px-5 pb-4 space-y-3">
-            <Player
-              isSpeaking={isSpeaking}
-              isPaused={isPaused}
-              onPlay={smartPlay}
-              onPause={pause}
-              onResume={resume}
-              onStop={stop}
-              disabled={!hasText}
-            />
-
-            <div className="flex items-center gap-2">
-              <DownloadButton onRequestPlay={smartPlay} isSpeaking={isSpeaking} text={text} />
-              <button
-                onClick={toggleAdvanced}
-                className="ml-auto text-xs text-gray-400 hover:text-violet-500 dark:hover:text-violet-400 transition-colors flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-violet-50 dark:hover:bg-gray-800"
-              >
-                {isAdvanced ? '▲ Less' : '⚙ Advanced'}
-              </button>
-            </div>
-
-            {isAdvanced && (
-              <Suspense fallback={<div className="h-32 rounded-xl bg-gray-50 dark:bg-gray-800 animate-pulse" />}>
-                <AdvancedControls
-                  voices={voices}
-                  selectedVoice={selectedVoice}
-                  setSelectedVoice={setSelectedVoice}
-                  rate={rate}
-                  setRate={setRate}
-                  pitch={pitch}
-                  setPitch={setPitch}
-                />
-              </Suspense>
-            )}
-          </div>
+          <p className="text-center text-xs text-gray-300 dark:text-gray-700 mt-4 select-none">
+            Ctrl+Enter to play · Esc to stop
+          </p>
         </div>
+      </section>
 
-        {/* History card */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-5">
-          <History
-            history={history}
-            onSelect={handleHistorySelect}
-            onClear={handleHistoryClear}
-          />
-        </div>
+      {/* Features */}
+      <Features />
 
-        <p className="text-center text-xs text-gray-300 dark:text-gray-700 select-none">
-          Ctrl+Enter to play · Esc to stop
-        </p>
-      </main>
+      {/* Footer */}
+      <Footer />
     </div>
   )
 }

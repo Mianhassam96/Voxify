@@ -1,6 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+* { font-family: 'Inter', system-ui, sans-serif; }
+
 @keyframes bounce-bar {
-  from { transform: scaleY(0.4); }
+  from { transform: scaleY(0.3); }
   to   { transform: scaleY(1); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
+  50%       { box-shadow: 0 0 0 16px rgba(99,102,241,0); }
+}
+
+@keyframes ripple {
+  to { transform: scale(4); opacity: 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+
+@keyframes wave {
+  0%   { d: path("M0,20 Q20,5 40,20 Q60,35 80,20 Q100,5 120,20"); }
+  50%  { d: path("M0,20 Q20,35 40,20 Q60,5 80,20 Q100,35 120,20"); }
+  100% { d: path("M0,20 Q20,5 40,20 Q60,35 80,20 Q100,5 120,20"); }
+}
+
+.animate-fade-up { animation: fade-up 0.6s ease-out forwards; }
+.animate-fade-up-delay-1 { animation: fade-up 0.6s ease-out 0.1s forwards; opacity: 0; }
+.animate-fade-up-delay-2 { animation: fade-up 0.6s ease-out 0.2s forwards; opacity: 0; }
+.animate-fade-up-delay-3 { animation: fade-up 0.6s ease-out 0.3s forwards; opacity: 0; }
+.animate-fade-up-delay-4 { animation: fade-up 0.6s ease-out 0.4s forwards; opacity: 0; }
+.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+
+.glass {
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.glass-dark {
+  background: rgba(15,23,42,0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #4F46E5, #0EA5E9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-border {
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, #4F46E5, #0EA5E9) border-box;
+  border: 2px solid transparent;
+}
+
+.dark .gradient-border {
+  background: linear-gradient(#0f172a, #0f172a) padding-box,
+              linear-gradient(135deg, #4F46E5, #0EA5E9) border-box;
 }
