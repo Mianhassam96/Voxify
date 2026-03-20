@@ -3,7 +3,28 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-* { font-family: 'Inter', system-ui, sans-serif; }
+/* ── Base dark/light backgrounds ── */
+html {
+  background-color: #ffffff;
+  color: #111827;
+}
+html.dark {
+  background-color: #030712;
+  color: #f9fafb;
+}
+body {
+  min-height: 100vh;
+  background-color: inherit;
+  color: inherit;
+}
+
+*, *::before, *::after { font-family: 'Inter', system-ui, sans-serif; box-sizing: border-box; }
+
+#root {
+  min-height: 100vh;
+  background-color: inherit;
+  color: inherit;
+}
 
 /* ── Keyframes ── */
 @keyframes fade-up   { from { opacity:0; transform:translateY(32px) } to { opacity:1; transform:translateY(0) } }
@@ -66,23 +87,27 @@
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255,255,255,.4);
 }
+.dark .glass {
+  background: rgba(10,10,20,.80);
+  border: 1px solid rgba(255,255,255,.07);
+}
 .glass-dark {
-  background: rgba(10,10,20,.75);
+  background: rgba(10,10,20,.80);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(255,255,255,.07);
 }
 .glass-card {
-  background: rgba(255,255,255,.6);
+  background: rgba(255,255,255,.88);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255,255,255,.5);
+  border: 1px solid rgba(255,255,255,.6);
   box-shadow: 0 8px 32px rgba(99,102,241,.08), 0 1px 0 rgba(255,255,255,.8) inset;
 }
 .dark .glass-card {
-  background: rgba(15,15,30,.7);
-  border: 1px solid rgba(255,255,255,.06);
-  box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  background: rgba(12,12,28,.90);
+  border: 1px solid rgba(255,255,255,.07);
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
 }
 
 /* ── Gradient border ── */
@@ -120,6 +145,18 @@
 
 /* ── Selection ── */
 ::selection { background: rgba(99,102,241,.25); color: inherit }
+
+/* ── Dark mode base overrides ── */
+.dark input,
+.dark textarea,
+.dark select {
+  color-scheme: dark;
+}
+
+/* ── Range input dark track fix ── */
+.dark input[type="range"] {
+  background: transparent;
+}
 
 /* ── Logo letter wave ── */
 @keyframes letter-wave {

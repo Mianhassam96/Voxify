@@ -83,7 +83,7 @@ export default function AppPage() {
   const charPct = (text.length / MAX_CHARS) * 100
 
   return (
-    <div className="min-h-screen pt-20 pb-16 px-4 bg-gradient-to-br from-slate-50 via-white to-indigo-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-slate-950 relative overflow-hidden">
+    <div className="min-h-screen pt-20 pb-16 px-4 bg-gradient-to-br from-slate-50 via-white to-indigo-50/40 dark:from-[#030712] dark:via-[#0f172a] dark:to-[#0c0a1e] relative overflow-hidden">
 
       {/* Background */}
       <div className="absolute inset-0 -z-10 pointer-events-none">

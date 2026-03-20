@@ -4,7 +4,7 @@ import { Footer } from '../components/layout/Footer'
 export default function AboutPage() {
   return (
     <>
-      <div className="min-h-screen pt-24 pb-16 px-4 bg-gradient-to-br from-slate-50 via-white to-violet-50/20 dark:from-gray-950 dark:via-gray-900 dark:to-slate-950">
+      <div className="min-h-screen pt-24 pb-16 px-4 bg-gradient-to-br from-slate-50 via-white to-violet-50/20 dark:from-[#030712] dark:via-[#0f172a] dark:to-[#0c0a1e]">
         <div className="max-w-3xl mx-auto">
 
           {/* Hero */}

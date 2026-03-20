@@ -16,7 +16,7 @@ const FEATURES = [
 export default function FeaturesPage() {
   return (
     <>
-      <div className="min-h-screen pt-24 pb-16 px-4 bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-slate-950">
+      <div className="min-h-screen pt-24 pb-16 px-4 bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 dark:from-[#030712] dark:via-[#0f172a] dark:to-[#0c0a1e]">
         <div className="max-w-6xl mx-auto">
 
           {/* Header */}

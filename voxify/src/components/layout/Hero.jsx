@@ -7,7 +7,7 @@ export function Hero() {
 
       {/* Animated background */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute top-0 left-0 right-0 h-full bg-gradient-to-br from-slate-50 via-indigo-50/40 to-violet-50/30 dark:from-gray-950 dark:via-indigo-950/20 dark:to-gray-950" />
+        <div className="absolute top-0 left-0 right-0 h-full bg-gradient-to-br from-slate-50 via-indigo-50/40 to-violet-50/30 dark:from-[#030712] dark:via-[#0d0b1e] dark:to-[#030712]" />
         {/* Morphing blobs */}
         <div className="absolute top-1/4 -left-20 w-[500px] h-[500px] bg-indigo-200/40 dark:bg-indigo-900/20 rounded-full blur-3xl animate-morph" />
         <div className="absolute bottom-1/4 -right-20 w-[400px] h-[400px] bg-violet-200/40 dark:bg-violet-900/20 rounded-full blur-3xl animate-morph" style={{ animationDelay: '4s' }} />
