@@ -1,131 +1,153 @@
 import { useRef, useState, useCallback } from 'react'
 
-/**
- * Downloads speech audio by capturing tab audio via getDisplayMedia.
- * Chrome/Edge: user must select "This Tab" + check "Share tab audio".
- * Firefox: not supported (no tab audio capture).
- */
+// Google Translate TTS — returns real MP3, no API key needed
+// Max ~200 chars per request; we chunk longer texts
+const GTTS_MAX = 180
+
+function buildGttsUrl(text, lang = 'en') {
+  const encoded = encodeURIComponent(text)
+  return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=${lang}&client=tw-ob`
+}
+
+// CORS proxy to fetch the MP3 blob
+function proxied(url) {
+  return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+}
+
+// Split text into chunks ≤ GTTS_MAX chars, breaking on word boundaries
+function chunkText(text) {
+  const words = text.split(' ')
+  const chunks = []
+  let current = ''
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word
+    if (candidate.length > GTTS_MAX) {
+      if (current) chunks.push(current)
+      current = word
+    } else {
+      current = candidate
+    }
+  }
+  if (current) chunks.push(current)
+  return chunks
+}
+
+// Detect language code from text for Google TTS
+function detectLangCode(text) {
+  if (/[\u0600-\u06FF]/.test(text)) return 'ur'
+  if (/[\u4E00-\u9FFF]/.test(text)) return 'zh-CN'
+  if (/[\u3040-\u30FF]/.test(text)) return 'ja'
+  if (/[\u0900-\u097F]/.test(text)) return 'hi'
+  return 'en'
+}
+
+// Merge multiple ArrayBuffers into one
+function mergeBuffers(buffers) {
+  const total = buffers.reduce((s, b) => s + b.byteLength, 0)
+  const merged = new Uint8Array(total)
+  let offset = 0
+  for (const buf of buffers) {
+    merged.set(new Uint8Array(buf), offset)
+    offset += buf.byteLength
+  }
+  return merged.buffer
+}
+
 export function useDownload() {
-  const [status, setStatus] = useState('idle') // idle | waiting | recording | saving | error
+  const [status, setStatus] = useState('idle')
+  // idle | fetching | ready | error
   const [progress, setProgress] = useState(0)
-  const [errorType, setErrorType] = useState(null) // null | 'no-audio' | 'cancelled' | 'unsupported' | 'error'
-  const recorderRef = useRef(null)
-  const chunksRef = useRef([])
+  const [error, setError] = useState(null)
+  const [audioBlob, setAudioBlob] = useState(null)
+  const [blobUrl, setBlobUrl] = useState(null)
+  const abortRef = useRef(null)
 
-  const isSupported = typeof navigator !== 'undefined' &&
-    typeof navigator.mediaDevices?.getDisplayMedia === 'function'
-
-  const downloadSpeech = useCallback(async ({ text, voice, rate = 1, pitch = 1, volume = 1 }) => {
-    if (!text?.trim()) return 'no-text'
-    if (!isSupported) {
-      setErrorType('unsupported')
-      return 'unsupported'
-    }
-
-    setErrorType(null)
-    setStatus('waiting')
-    setProgress(0)
-
-    let stream
-    try {
-      stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { displaySurface: 'browser' },
-        audio: { suppressLocalAudioPlayback: false },
-        preferCurrentTab: true,
-      })
-    } catch {
-      setStatus('idle')
-      setErrorType('cancelled')
-      return 'cancelled'
-    }
-
-    // Stop video tracks — we only need audio
-    stream.getVideoTracks().forEach(t => t.stop())
-    const audioTracks = stream.getAudioTracks()
-
-    if (!audioTracks.length) {
-      stream.getTracks().forEach(t => t.stop())
-      setStatus('idle')
-      setErrorType('no-audio')
-      return 'no-audio'
-    }
-
-    const audioStream = new MediaStream(audioTracks)
-    chunksRef.current = []
-
-    const mimeType = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg']
-      .find(t => MediaRecorder.isTypeSupported(t)) || ''
-
-    const recorder = new MediaRecorder(audioStream, mimeType ? { mimeType } : {})
-    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
-    recorderRef.current = recorder
-
-    recorder.onstop = () => {
-      const ext = mimeType.includes('ogg') ? 'ogg' : 'webm'
-      const blob = new Blob(chunksRef.current, { type: mimeType || 'audio/webm' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `voxify-audio-${Date.now()}.${ext}`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      setTimeout(() => URL.revokeObjectURL(url), 2000)
-      audioStream.getTracks().forEach(t => t.stop())
-      recorderRef.current = null
-      setStatus('idle')
-      setProgress(0)
-    }
-
-    recorder.start(100)
-    setStatus('recording')
-    setProgress(15)
-
-    // Speak the text
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = rate
-    utterance.pitch = pitch
-    utterance.volume = volume
-    if (voice) utterance.voice = voice
-
-    utterance.onstart = () => setProgress(30)
-
-    utterance.onboundary = (e) => {
-      if (e.name === 'word' && e.charIndex != null) {
-        const pct = Math.min(90, 30 + Math.round((e.charIndex / text.length) * 60))
-        setProgress(pct)
-      }
-    }
-
-    utterance.onend = () => {
-      setProgress(95)
-      setStatus('saving')
-      setTimeout(() => {
-        if (recorder.state !== 'inactive') recorder.stop()
-      }, 600)
-    }
-
-    utterance.onerror = () => {
-      if (recorder.state !== 'inactive') recorder.stop()
-    }
-
-    window.speechSynthesis.cancel()
-    window.speechSynthesis.speak(utterance)
-
-    return 'ok'
-  }, [isSupported])
-
-  const cancel = useCallback(() => {
-    window.speechSynthesis.cancel()
-    if (recorderRef.current?.state !== 'inactive') {
-      recorderRef.current?.stop()
-    }
+  const reset = useCallback(() => {
+    if (blobUrl) URL.revokeObjectURL(blobUrl)
     setStatus('idle')
     setProgress(0)
-    setErrorType(null)
+    setError(null)
+    setAudioBlob(null)
+    setBlobUrl(null)
+  }, [blobUrl])
+
+  const cancel = useCallback(() => {
+    abortRef.current?.abort()
+    reset()
+  }, [reset])
+
+  /**
+   * Fetch MP3 from Google TTS, merge chunks, return blob URL.
+   * Works on all browsers/devices — no screen share needed.
+   */
+  const generateAudio = useCallback(async ({ text, lang }) => {
+    if (!text?.trim()) { setError('no-text'); return null }
+
+    reset()
+    setStatus('fetching')
+    setProgress(5)
+
+    const controller = new AbortController()
+    abortRef.current = controller
+    const langCode = lang || detectLangCode(text)
+    const chunks = chunkText(text.trim())
+
+    try {
+      const buffers = []
+      for (let i = 0; i < chunks.length; i++) {
+        if (controller.signal.aborted) return null
+
+        const url = buildGttsUrl(chunks[i], langCode)
+        const res = await fetch(proxied(url), { signal: controller.signal })
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        buffers.push(await res.arrayBuffer())
+
+        setProgress(Math.round(10 + ((i + 1) / chunks.length) * 80))
+      }
+
+      const merged = mergeBuffers(buffers)
+      const blob = new Blob([merged], { type: 'audio/mpeg' })
+      const url = URL.createObjectURL(blob)
+
+      setAudioBlob(blob)
+      setBlobUrl(url)
+      setProgress(100)
+      setStatus('ready')
+      return { blob, url }
+    } catch (err) {
+      if (err.name === 'AbortError') return null
+      console.warn('TTS fetch failed:', err)
+      setError('fetch-failed')
+      setStatus('error')
+      return null
+    }
+  }, [reset])
+
+  /**
+   * Trigger browser download of the generated MP3.
+   */
+  const downloadMp3 = useCallback((blob, filename = `voxify-${Date.now()}.mp3`) => {
+    if (!blob) return
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 2000)
   }, [])
 
-  const clearError = useCallback(() => setErrorType(null), [])
-
-  return { status, progress, errorType, isSupported, downloadSpeech, cancel, clearError }
+  return {
+    status,      // idle | fetching | ready | error
+    progress,
+    error,       // null | 'no-text' | 'fetch-failed'
+    audioBlob,
+    blobUrl,     // blob: URL — usable as <audio src> or copy link
+    generateAudio,
+    downloadMp3,
+    cancel,
+    reset,
+  }
 }

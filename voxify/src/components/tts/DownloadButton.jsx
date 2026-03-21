@@ -1,154 +1,175 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useDownload } from '../../hooks/useDownload'
 
-const isChrome = typeof navigator !== 'undefined' &&
-  /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent)
-const isEdge = typeof navigator !== 'undefined' && /Edg/.test(navigator.userAgent)
-const isFirefox = typeof navigator !== 'undefined' && /Firefox/.test(navigator.userAgent)
-const isSafari = typeof navigator !== 'undefined' && /Safari/.test(navigator.userAgent) && !isChrome
+export function DownloadButton({ text, lang }) {
+  const { status, progress, error, audioBlob, blobUrl, generateAudio, downloadMp3, cancel, reset } = useDownload()
+  const [showPanel, setShowPanel] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const audioRef = useRef(null)
+  const panelRef = useRef(null)
 
-function BrowserBadge() {
-  if (isChrome) return <span className="text-green-500 font-bold">Chrome ✓</span>
-  if (isEdge) return <span className="text-blue-500 font-bold">Edge ✓</span>
-  if (isFirefox) return <span className="text-orange-500 font-bold">Firefox ✗</span>
-  if (isSafari) return <span className="text-orange-500 font-bold">Safari ✗</span>
-  return <span className="text-gray-500">Unknown</span>
-}
+  const isFetching = status === 'fetching'
+  const isReady = status === 'ready'
+  const isError = status === 'error'
 
-export function DownloadButton({ text, voice, rate, pitch, volume }) {
-  const { status, progress, errorType, isSupported, downloadSpeech, cancel, clearError } = useDownload()
-  const [showModal, setShowModal] = useState(false)
-  const modalRef = useRef(null)
-  const isActive = status !== 'idle'
-
-  // Show guide when no-audio error
+  // Close panel on outside click
   useEffect(() => {
-    if (errorType === 'no-audio') setShowModal(true)
-  }, [errorType])
-
-  // Close modal on outside click
-  useEffect(() => {
-    if (!showModal) return
-    const handler = (e) => {
-      if (modalRef.current && !modalRef.current.contains(e.target)) {
-        setShowModal(false)
-        clearError()
+    if (!showPanel) return
+    const h = (e) => {
+      if (panelRef.current && !panelRef.current.contains(e.target)) {
+        setShowPanel(false)
       }
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [showModal, clearError])
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [showPanel])
 
-  const handleClick = async () => {
-    if (isActive) { cancel(); return }
-    if (!isSupported || isFirefox || isSafari) {
-      setShowModal(true)
-      return
-    }
-    clearError()
-    setShowModal(false)
-    await downloadSpeech({ text, voice, rate, pitch, volume })
+  // Reset when text changes
+  useEffect(() => { reset() }, [text]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleGenerate = async () => {
+    const result = await generateAudio({ text, lang })
+    if (result) setShowPanel(true)
+    else if (status !== 'idle') setShowPanel(true) // show error panel
   }
 
-  const statusLabel = {
-    idle: '⬇ Download',
-    waiting: '⏳ Starting...',
-    recording: `🔴 ${progress}%`,
-    saving: '💾 Saving...',
-  }[status]
+  const handleCopyLink = async () => {
+    if (!blobUrl) return
+    try {
+      await navigator.clipboard.writeText(blobUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback
+      const el = document.createElement('textarea')
+      el.value = blobUrl
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const disabled = !text?.trim()
 
   return (
-    <div className="relative">
-      {/* Guide Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div
-            ref={modalRef}
-            className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl p-6 space-y-4 animate-scale-in"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-black text-gray-900 dark:text-white text-lg">Download Audio</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Browser: <BrowserBadge /></p>
-              </div>
-              <button
-                onClick={() => { setShowModal(false); clearError() }}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >✕</button>
-            </div>
-
-            {(isFirefox || isSafari || !isSupported) ? (
-              <div className="space-y-3">
-                <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 text-sm text-orange-700 dark:text-orange-300">
-                  ⚠️ Your browser doesn't support tab audio capture. Please use <strong>Chrome</strong> or <strong>Edge</strong> for audio download.
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Alternatively, use your system's audio recording software while playing the speech.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Follow these steps to capture the audio:
-                </p>
-                <ol className="space-y-2.5">
-                  {[
-                    ['1', 'Click "Start Recording" below'],
-                    ['2', 'A screen share dialog will appear'],
-                    ['3', 'Select the "Chrome Tab" option'],
-                    ['4', '✅ Check "Share tab audio" checkbox'],
-                    ['5', 'Click "Share" — recording starts automatically'],
-                  ].map(([n, step]) => (
-                    <li key={n} className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-                      <span className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{n}</span>
-                      <span dangerouslySetInnerHTML={{ __html: step.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
-                    </li>
-                  ))}
-                </ol>
-                <div className="pt-1 flex gap-2">
-                  <button
-                    onClick={async () => {
-                      setShowModal(false)
-                      await downloadSpeech({ text, voice, rate, pitch, volume })
-                    }}
-                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-bold hover:from-indigo-500 hover:to-violet-500 transition-all active:scale-95"
-                  >
-                    🎙 Start Recording
-                  </button>
-                  <button
-                    onClick={() => { setShowModal(false); clearError() }}
-                    className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
+    <div className="relative" ref={panelRef}>
+      {/* Trigger button */}
       <button
-        onClick={handleClick}
-        disabled={!text?.trim() && !isActive}
+        onClick={() => {
+          if (isFetching) { cancel(); return }
+          if (isReady || isError) { setShowPanel(v => !v); return }
+          handleGenerate()
+        }}
+        disabled={disabled && !isFetching}
         className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 active:scale-95 overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed
-          ${isActive
-            ? 'bg-red-500 hover:bg-red-400 text-white shadow-md shadow-red-200 dark:shadow-red-900/30'
-            : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow-sm'
+          ${isFetching
+            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-indigo-900/30'
+            : isReady
+              ? 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-md shadow-emerald-200 dark:shadow-emerald-900/30'
+              : isError
+                ? 'bg-red-500 hover:bg-red-400 text-white'
+                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-600 dark:hover:text-indigo-400'
           }`}
-        title={isActive ? 'Cancel recording' : 'Download speech as audio file'}
+        title="Generate & download MP3 audio"
       >
-        {isActive && (
+        {/* Progress fill bar */}
+        {isFetching && (
           <div
-            className="absolute inset-0 bg-white/20 transition-all duration-500 ease-out"
+            className="absolute inset-0 bg-white/20 transition-all duration-300 ease-out"
             style={{ width: `${progress}%` }}
           />
         )}
-        <span className="relative">{statusLabel}</span>
-        {isActive && (
-          <span className="relative text-xs opacity-70">Cancel</span>
+        <span className="relative">
+          {isFetching ? `⏳ ${progress}%` : isReady ? '✅ Audio Ready' : isError ? '⚠ Retry' : '🎵 Get MP3'}
+        </span>
+        {isFetching && (
+          <span className="relative text-xs opacity-70 ml-1">Cancel</span>
         )}
       </button>
+
+      {/* Dropdown panel */}
+      {showPanel && (isReady || isError) && (
+        <div className="absolute bottom-full left-0 mb-2 w-80 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl z-50 overflow-hidden animate-scale-in">
+
+          {isError ? (
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-gray-900 dark:text-white text-sm">Generation Failed</span>
+                <button onClick={() => setShowPanel(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">✕</button>
+              </div>
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 text-sm text-red-700 dark:text-red-300">
+                ⚠️ Could not fetch audio. Check your internet connection and try again.
+              </div>
+              <button
+                onClick={() => { setShowPanel(false); handleGenerate() }}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-bold hover:from-indigo-500 hover:to-violet-500 transition-all active:scale-95"
+              >
+                🔄 Try Again
+              </button>
+            </div>
+          ) : (
+            <div className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Audio Generated
+                </span>
+                <button
+                  onClick={() => { setShowPanel(false); reset() }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none"
+                >✕</button>
+              </div>
+
+              {/* Audio preview player */}
+              <div className="rounded-xl bg-gray-50 dark:bg-gray-800 p-3">
+                <audio
+                  ref={audioRef}
+                  src={blobUrl}
+                  controls
+                  className="w-full h-8"
+                  style={{ colorScheme: 'light dark' }}
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => downloadMp3(audioBlob)}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-bold hover:from-indigo-500 hover:to-violet-500 transition-all active:scale-95 shadow-md shadow-indigo-200 dark:shadow-indigo-900/30"
+                >
+                  ⬇ Download MP3
+                </button>
+                <button
+                  onClick={handleCopyLink}
+                  className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 border
+                    ${copied
+                      ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:border-indigo-300 dark:hover:border-indigo-700'
+                    }`}
+                >
+                  {copied ? '✅ Copied!' : '🔗 Copy Link'}
+                </button>
+              </div>
+
+              {/* Link note */}
+              <p className="text-xs text-gray-400 dark:text-gray-600 text-center">
+                Link is valid for this session only
+              </p>
+
+              {/* Regenerate */}
+              <button
+                onClick={() => { setShowPanel(false); reset(); setTimeout(handleGenerate, 100) }}
+                className="w-full py-2 rounded-xl text-xs text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+              >
+                🔄 Regenerate
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

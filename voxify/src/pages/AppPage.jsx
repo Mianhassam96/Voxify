@@ -75,11 +75,6 @@ export default function AppPage() {
     )
   }, [])
 
-  const currentVoice = useMemo(() => {
-    if (selectedVoice) return selectedVoice
-    return findBestVoice(voices, detectLang(text))
-  }, [selectedVoice, voices, text])
-
   const charPct = (text.length / MAX_CHARS) * 100
 
   return (
@@ -171,10 +166,7 @@ export default function AppPage() {
             <div className="flex items-center gap-2 flex-wrap">
               <DownloadButton
                 text={cleanText(text)}
-                voice={currentVoice}
-                rate={rate}
-                pitch={pitch}
-                volume={volume}
+                lang={detectLang(text)}
               />
               <button
                 onClick={() => setIsAdvanced(v => !v)}
