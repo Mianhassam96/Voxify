@@ -5,6 +5,7 @@ import { TextArea } from '../components/tts/TextArea'
 import { Presets } from '../components/tts/Presets'
 import { AudioPanel } from '../components/tts/AudioPanel'
 import { Waveform } from '../components/animations/Waveform'
+import { Footer } from '../components/layout/Footer'
 import { detectLang, findBestVoice, cleanText } from '../utils/language'
 
 const AdvancedControls = lazy(() =>
@@ -334,6 +335,7 @@ export default function AppPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   )
 }
