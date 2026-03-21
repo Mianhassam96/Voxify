@@ -7,7 +7,7 @@ import AboutPage from './pages/AboutPage'
 
 export default function App() {
   return (
-    <BrowserRouter basename="/Voxify">
+    <BrowserRouter basename="/Mianova">
       <Navbar />
       <Routes>
         <Route path="/" element={<LandingPage />} />
