@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from 'react'
 
-// ── Text chunking ──────────────────────────────────────────────
-const CHUNK_MAX = 150 // conservative — Google TTS limit
+// ── Text chunking (Google TTS ~150 char limit) ─────────────────
+const CHUNK_MAX = 150
 
 function chunkText(text) {
   const words = text.trim().split(/\s+/)
@@ -27,8 +27,7 @@ export function detectLangCode(text) {
   return 'en'
 }
 
-// ── Google TTS URL builder ─────────────────────────────────────
-// speed: 'slow' | '' (normal)
+// ── Google TTS URL ─────────────────────────────────────────────
 function gttsUrl(text, lang, slow = false) {
   return (
     `https://translate.google.com/translate_tts` +
@@ -38,7 +37,7 @@ function gttsUrl(text, lang, slow = false) {
   )
 }
 
-// ── CORS proxy list — tried in order ──────────────────────────
+// ── CORS proxy list ────────────────────────────────────────────
 const PROXIES = [
   (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
   (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
@@ -46,7 +45,6 @@ const PROXIES = [
 ]
 
 async function fetchWithProxies(url, signal) {
-  // Try direct first (works in some environments)
   try {
     const r = await fetch(url, { signal, headers: { 'User-Agent': 'Mozilla/5.0' } })
     if (r.ok) return r
@@ -75,7 +73,6 @@ function mergeBuffers(bufs) {
 export async function uploadForPublicLink(blob) {
   const filename = `mianova-${Date.now()}.mp3`
 
-  // 1. file.io (CORS-friendly, 14-day link)
   try {
     const form = new FormData()
     form.append('file', blob, filename)
@@ -86,7 +83,6 @@ export async function uploadForPublicLink(blob) {
     }
   } catch { /* fallback */ }
 
-  // 2. 0x0.st
   try {
     const form = new FormData()
     form.append('file', blob, filename)
@@ -123,18 +119,10 @@ export function useDownload() {
     reset()
   }, [reset])
 
-  /**
-   * Generate MP3 from text using Google TTS.
-   * @param {object} opts
-   * @param {string} opts.text
-   * @param {string} [opts.lang]   - language code override
-   * @param {number} [opts.rate]   - 0.5–2 (maps to slow/normal)
-   */
   const generateAudio = useCallback(async ({ text, lang, rate = 1 }) => {
     if (!text?.trim()) return null
 
     reset()
-    // Small delay so reset's revokeObjectURL runs first
     await new Promise(r => setTimeout(r, 20))
 
     setStatus('fetching')
