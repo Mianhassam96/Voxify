@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useDownload } from '../../hooks/useDownload'
 
 export function DownloadButton({ text, lang }) {
-  const { status, progress, error, audioBlob, blobUrl, generateAudio, downloadMp3, cancel, reset } = useDownload()
+  const { status, progress, errorMsg, audioBlob, blobUrl, generateAudio, downloadMp3, cancel, reset } = useDownload()
   const [showPanel, setShowPanel] = useState(false)
   const [copied, setCopied] = useState(false)
   const audioRef = useRef(null)
@@ -29,8 +29,8 @@ export function DownloadButton({ text, lang }) {
 
   const handleGenerate = async () => {
     const result = await generateAudio({ text, lang })
-    if (result) setShowPanel(true)
-    else if (status !== 'idle') setShowPanel(true) // show error panel
+    // result is null on cancel/error, object on success
+    setShowPanel(true)
   }
 
   const handleCopyLink = async () => {

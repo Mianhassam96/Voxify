@@ -4,6 +4,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import { TextArea } from '../components/tts/TextArea'
 import { Presets } from '../components/tts/Presets'
 import { AudioPanel } from '../components/tts/AudioPanel'
+import { History } from '../components/tts/History'
 import { Waveform } from '../components/animations/Waveform'
 import { Footer } from '../components/layout/Footer'
 import { detectLang, findBestVoice, cleanText } from '../utils/language'
@@ -14,7 +15,14 @@ const AdvancedControls = lazy(() =>
 
 const MAX_CHARS = 5000
 
-const LANG_LABELS = { en: '🇬🇧 English', ur: '🇵🇰 Urdu', ar: '🇸🇦 Arabic', zh: '🇨🇳 Chinese', ja: '🇯🇵 Japanese', hi: '🇮🇳 Hindi' }
+const LANG_LABELS = {
+  en: '🇬🇧 English',
+  ur: '🇵🇰 Urdu',
+  ar: '🇸🇦 Arabic',
+  zh: '🇨🇳 Chinese',
+  ja: '🇯🇵 Japanese',
+  hi: '🇮🇳 Hindi',
+}
 
 export default function AppPage() {
   const { voices, isSpeaking, isPaused, speak, pause, resume, stop } = useSpeech()
@@ -28,6 +36,7 @@ export default function AppPage() {
   const [highlightIndex, setHighlightIndex] = useState(-1)
   const [detectedLang, setDetectedLang] = useState('')
   const [copied, setCopied] = useState(false)
+  const [history, setHistory] = useLocalStorage('mianova_history', [])
 
   const words = useMemo(() => text.split(/\s+/).filter(Boolean), [text])
   const wordCount = words.length
@@ -47,7 +56,8 @@ export default function AppPage() {
     const lang = detectLang(cleaned)
     const voice = selectedVoice || findBestVoice(voices, lang)
     speak({ text: cleaned, voice, rate, pitch, volume, onBoundary: idx => setHighlightIndex(idx) })
-  }, [text, voices, rate, pitch, volume, selectedVoice, speak])
+    setHistory(prev => [cleaned, ...prev.filter(h => h !== cleaned)].slice(0, 8))
+  }, [text, voices, rate, pitch, volume, selectedVoice, speak, setHistory])
 
   useEffect(() => {
     const h = (e) => {
@@ -80,6 +90,9 @@ export default function AppPage() {
     setTimeout(() => setCopied(false), 2000)
   }, [text])
 
+  const handleHistorySelect = useCallback((item) => { setText(item); stop() }, [stop])
+  const handleHistoryClear = useCallback(() => setHistory([]), [setHistory])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/40 dark:from-[#030712] dark:via-[#0f172a] dark:to-[#0c0a1e] relative overflow-hidden">
 
@@ -101,7 +114,6 @@ export default function AppPage() {
               </h1>
               <p className="text-gray-400 dark:text-gray-500 text-sm mt-0.5">Text to speech · MP3 download · Multi-language</p>
             </div>
-            {/* Keyboard hints — hidden on mobile */}
             <div className="hidden sm:flex items-center gap-3">
               {[['Ctrl+Enter', 'Play'], ['Esc', 'Stop']].map(([key, label]) => (
                 <div key={key} className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-600">
@@ -113,10 +125,10 @@ export default function AppPage() {
           </div>
         </div>
 
-        {/* Two-column layout on lg, stacked on mobile */}
+        {/* Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5 items-start">
 
-          {/* ── LEFT: Editor column ── */}
+          {/* LEFT: Editor column */}
           <div className="space-y-4 animate-fade-up-1">
 
             {/* Editor card */}
@@ -232,9 +244,18 @@ export default function AppPage() {
                 </div>
               )}
             </div>
+
+            {/* History */}
+            <div className="glass-card rounded-2xl p-5">
+              <History
+                history={history}
+                onSelect={handleHistorySelect}
+                onClear={handleHistoryClear}
+              />
+            </div>
           </div>
 
-          {/* ── RIGHT: Controls column ── */}
+          {/* RIGHT: Controls column */}
           <div className="space-y-4 animate-fade-up-2">
 
             {/* Play controls card */}
