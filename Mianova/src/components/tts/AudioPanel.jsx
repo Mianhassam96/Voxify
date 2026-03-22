@@ -10,7 +10,6 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
   const isReady    = status === 'ready'
   const isError    = status === 'error'
 
-  // Reset when text changes
   useEffect(() => {
     reset()
     setCopied(false)
@@ -23,14 +22,12 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
 
   const handleCopyLink = useCallback(async () => {
     if (!blobUrl) return
-    try {
-      await navigator.clipboard.writeText(blobUrl)
-    } catch {
-      window.prompt('Copy this link:', blobUrl)
-    }
+    try { await navigator.clipboard.writeText(blobUrl) } catch { window.prompt('Copy:', blobUrl) }
     setCopied(true)
     setTimeout(() => setCopied(false), 3000)
   }, [blobUrl])
+
+  const fileLabel = audioBlob?.type.includes('wav') ? 'WAV' : 'MP3'
 
   return (
     <div className="glass-card rounded-3xl overflow-hidden">
@@ -41,7 +38,7 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
         {isReady && (
           <span className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Ready
+            Ready · {fileLabel}
           </span>
         )}
       </div>
@@ -53,10 +50,10 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
           <>
             {isError && (
               <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-start gap-2">
-                <span className="mt-0.5 text-base">⚠️</span>
+                <span className="mt-0.5">⚠️</span>
                 <div>
                   <p className="font-semibold">Recording failed</p>
-                  <p className="text-xs mt-0.5 opacity-80">{errorMsg || 'Try again or use a different browser.'}</p>
+                  <p className="text-xs mt-0.5 opacity-80">{errorMsg || 'Use Chrome or Edge for best results.'}</p>
                 </div>
               </div>
             )}
@@ -65,11 +62,12 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
               disabled={!text?.trim()}
               className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold text-sm shadow-lg shadow-emerald-200 dark:shadow-emerald-900/30 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              <span>🎵</span> {isError ? 'Try Again' : 'Record & Export Audio'}
+              <span>🎵</span> {isError ? 'Try Again' : 'Generate & Download MP3'}
             </button>
             <p className="text-xs text-center text-gray-400 dark:text-gray-600">
-              Records browser TTS · No internet needed · Works offline
-            </p>          </>
+              Captures browser TTS · No internet needed · Chrome / Edge
+            </p>
+          </>
         )}
 
         {/* FETCHING */}
@@ -78,7 +76,7 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
             <div className="rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/40 p-4">
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
-                  {progress < 10 ? 'Starting…' : progress < 95 ? '🎙 Recording speech…' : 'Finalizing…'}
+                  {progress < 10 ? 'Starting…' : progress < 93 ? '🎙 Recording…' : progress < 97 ? 'Encoding MP3…' : 'Finalizing…'}
                 </span>
                 <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 tabular-nums">{progress}%</span>
               </div>
@@ -89,7 +87,7 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
                 />
               </div>
               <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-2">
-                Speaking the text aloud and capturing the audio…
+                Speaking and capturing audio in real time…
               </p>
             </div>
             <button
@@ -104,7 +102,6 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
         {/* READY */}
         {isReady && (
           <div className="space-y-3">
-            {/* Audio preview */}
             <div className="rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/50 p-3">
               <audio
                 ref={audioRef}
@@ -115,15 +112,13 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
               />
             </div>
 
-            {/* Download */}
             <button
               onClick={() => downloadMp3(audioBlob)}
               className="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-sm shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30 transition-all active:scale-95 flex items-center justify-center gap-2"
             >
-              ⬇ Download MP3
+              ⬇ Download {fileLabel}
             </button>
 
-            {/* Copy blob URL */}
             <button
               onClick={handleCopyLink}
               className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 border flex items-center justify-center gap-2
@@ -135,11 +130,6 @@ export function AudioPanel({ text, lang, rate = 1, pitch = 1, volume = 1 }) {
               {copied ? '✅ Copied!' : '🔗 Copy Audio Link'}
             </button>
 
-            <p className="text-xs text-center text-gray-400 dark:text-gray-600">
-              Link works in this browser session only
-            </p>
-
-            {/* Regenerate */}
             <div className="flex justify-end">
               <button
                 onClick={() => { reset(); setTimeout(handleGenerate, 30) }}
